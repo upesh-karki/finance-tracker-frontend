@@ -38,7 +38,6 @@
       "last 1 safari version"
     ]
   },
-  "proxy": "https://finance-tracker-api-dtfkggehg3ggc0au.canadacentral-01.azurewebsites.net",
   "devDependencies": {
     "http-proxy-middleware": "^3.0.3"
   }

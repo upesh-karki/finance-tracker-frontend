@@ -1,62 +1,52 @@
 import { createContext, useContext, useState } from "react";
 import { RenderHeader } from "../components/structure/Header";
 import { RenderMenu, RenderRoutes } from "../components/structure/RenderNavigation";
+import { API } from "../api/config";
 
-// Create AuthContext for accessing authentication data
 const AuthContext = createContext();
 export const AuthData = () => useContext(AuthContext);
 
 export const AuthWrapper = () => {
+  const [user, setUser] = useState({ name: "", isAuthenticated: false, memberid: null, firstname: "" });
 
-     // State to manage user details
-     const [ user, setUser ] = useState({ name: "", isAuthenticated: false, memberId: null });
+  const login = async (username, password) => {
+    try {
+      const response = await fetch(API.login, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ username, password }),
+      });
 
-     // Login function that makes an API call to authenticate the user
-    const login = async (userName, password) => {
-      try {
-        const response = await fetch("https://finance-tracker-api-dtfkggehg3ggc0au.canadacentral-01.azurewebsites.net/members/login", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({ userName, password }),
-        });
-
-        // Check for successful response
-        if (!response.ok) {
-          const errorData = await response.json(); // Try to get error message from server
-          throw new Error(errorData?.message || "Login failed"); // Use server message or default
-        }
-
-        // Parse the JSON response
-        const data = await response.json();
-
-        // Validate response format (optional)
-        if (!data || !data.memberid) {
-          throw new Error("Invalid response format from server"); // More specific error message
-        }
-
-        // If successful login, set user data and return success message
-        setUser({ name: userName, isAuthenticated: true, memberid: data.memberid, firstname: data.firstName});
-        return "success";
-      } catch (error) {
-        throw error; // Re-throw the error for handling in the component
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData?.message || "Login failed");
       }
 
-     };
+      const result = await response.json();
+      const data = result.data;
 
-     // Logout function that clears user data
-     const logout = () => {
-          setUser({ name: "", isAuthenticated: false, memberId: null });
-     };
+      if (!data || !data.id) {
+        throw new Error("Invalid response format from server");
+      }
 
-     return (
-          <AuthContext.Provider value={{ user, login, logout }}>
-               <>
-                    <RenderHeader />
-                    <RenderMenu />
-                    <RenderRoutes />
-               </>
-          </AuthContext.Provider>
-     );
+      setUser({ name: username, isAuthenticated: true, memberid: data.id, firstname: data.firstName });
+      return "success";
+    } catch (error) {
+      throw error;
+    }
+  };
+
+  const logout = () => {
+    setUser({ name: "", isAuthenticated: false, memberid: null, firstname: "" });
+  };
+
+  return (
+    <AuthContext.Provider value={{ user, login, logout }}>
+      <>
+        <RenderHeader />
+        <RenderMenu />
+        <RenderRoutes />
+      </>
+    </AuthContext.Provider>
+  );
 };
