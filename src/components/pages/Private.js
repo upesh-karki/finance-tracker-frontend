@@ -1,4 +1,5 @@
 import { AuthData } from "../../auth/AuthWrapper";
+import { API } from "../../api/config";
 import React, { useState, useEffect } from 'react';
 import {
   Chart as ChartJS,
@@ -12,128 +13,95 @@ import {
 } from 'chart.js';
 import { Bar, Pie } from 'react-chartjs-2';
 
-ChartJS.register(
-  CategoryScale,
-  LinearScale,
-  BarElement,
-  Title,
-  Tooltip,
-  Legend,
-  ArcElement
-);
+ChartJS.register(CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend, ArcElement);
 
 export const Private = () => {
   const { user } = AuthData();
   const [expenses, setExpenses] = useState([]);
   const [totalExpenses, setTotalExpenses] = useState(0);
   const [newExpense, setNewExpense] = useState({
-    expensename: '',
-    expensecost: '',
-    recurring: 'No',
-    type: 'Food'
+    expenseName: '',
+    amount: '',
+    category: 'FOOD',
+    description: '',
+    expenseDate: new Date().toISOString().split('T')[0],
   });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
-  // Fetch expenses from API
+  const fetchExpenses = async () => {
+    try {
+      const response = await fetch(API.expenses(user.memberid), {
+        method: 'GET',
+        headers: { 'Content-Type': 'application/json' }
+      });
+      if (!response.ok) throw new Error('Failed to fetch expenses');
+      const result = await response.json();
+      const data = result.data || [];
+      setExpenses(data);
+      setTotalExpenses(data.reduce((sum, e) => sum + Number(e.amount), 0));
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   useEffect(() => {
-    const fetchExpenses = async () => {
-      try {
-         // Fix 1: Remove body from GET request and fix template literal
-         const response = await fetch(`https://finance-tracker-api-dtfkggehg3ggc0au.canadacentral-01.azurewebsites.net/members/${user.memberid}/expenses`, {
-           method: 'GET',
-           headers: { 'Content-Type': 'application/json' }
-           // Removed body property
-         });
-        if (!response.ok) throw new Error('Failed to fetch expenses');
-        const data = await response.json();
-        setExpenses(data);
-        setTotalExpenses(data.reduce((sum, expense) => sum + Number(expense.expensecost), 0));
-      } catch (err) {
-        setError(err.message);
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchExpenses();
+    if (user.memberid) fetchExpenses();
   }, [user.memberid]);
 
-const handleSubmit = async (e) => {
-  e.preventDefault();
-  setError('');
-
-  if (!newExpense.expensename || !newExpense.expensecost) {
-    setError('Please fill all required fields');
-    return;
-  }
-
-  try {
-    const response = await fetch(`https://finance-tracker-api-dtfkggehg3ggc0au.canadacentral-01.azurewebsites.net/members/${user.memberid}/expenses`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        expensename: newExpense.expensename,
-        expensecost: parseFloat(newExpense.expensecost).toFixed(2),
-        recurring: newExpense.recurring,
-        type: newExpense.type
-      })
-    });
-
-    const textResponse = await response.text();
-
-    // Handle successful response that's not JSON
-    if (response.ok) {
-      // Refresh expenses list from server
-      const refreshResponse = await fetch(`/members/${user.memberid}/expenses`);
-      const refreshedData = await refreshResponse.json();
-
-      setExpenses(refreshedData);
-      setTotalExpenses(refreshedData.reduce((sum, expense) => sum + Number(expense.expensecost), 0));
-      setNewExpense({ expensename: '', expensecost: '', recurring: 'No', type: 'Food' });
-      return;
-    }
-
-    // Handle errors
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setError('');
     try {
-      const data = JSON.parse(textResponse);
-      throw new Error(data.message || 'Failed to add expense');
-    } catch {
-      throw new Error(textResponse || 'Unknown error occurred');
-    }
+      const response = await fetch(API.addExpense, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          memberId: user.memberid,
+          expenseName: newExpense.expenseName,
+          amount: parseFloat(newExpense.amount),
+          category: newExpense.category,
+          description: newExpense.description,
+          expenseDate: newExpense.expenseDate,
+        })
+      });
 
-  } catch (err) {
-    setError(err.message);
-  }
-};
+      const result = await response.json();
+      if (response.ok && result.success) {
+        await fetchExpenses();
+        setNewExpense({ expenseName: '', amount: '', category: 'FOOD', description: '', expenseDate: new Date().toISOString().split('T')[0] });
+      } else {
+        throw new Error(result.message || 'Failed to add expense');
+      }
+    } catch (err) {
+      setError(err.message);
+    }
+  };
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
-    setNewExpense(prev => ({
-      ...prev,
-      [name]: name === 'expensecost' ? value.replace(/[^0-9.]/g, '') : value
-    }));
+    setNewExpense(prev => ({ ...prev, [name]: value }));
   };
 
-  // Chart data
   const barChartData = {
-    labels: expenses.map((expense) => expense.expensename),
+    labels: expenses.map((e) => e.expenseName),
     datasets: [{
-      label: 'Expense Cost',
-      data: expenses.map((expense) => expense.expensecost),
+      label: 'Expense Amount',
+      data: expenses.map((e) => e.amount),
       backgroundColor: 'rgba(54, 162, 235, 0.7)',
     }],
   };
 
   const pieChartData = {
-    labels: [...new Set(expenses.map(expense => expense.type))],
+    labels: [...new Set(expenses.map(e => e.category))],
     datasets: [{
-      label: 'Expenses by Type',
-      data: [...new Set(expenses.map(expense => expense.type))].map(type =>
-        expenses.filter(exp => exp.type === type).reduce((sum, exp) => sum + Number(exp.expensecost), 0)
+      label: 'Expenses by Category',
+      data: [...new Set(expenses.map(e => e.category))].map(cat =>
+        expenses.filter(e => e.category === cat).reduce((sum, e) => sum + Number(e.amount), 0)
       ),
-      backgroundColor: [
-        '#FF6384', '#36A2EB', '#FFCE56', '#4BC0C0', '#9966FF', '#FF9F40'
-      ],
+      backgroundColor: ['#FF6384', '#36A2EB', '#FFCE56', '#4BC0C0', '#9966FF', '#FF9F40', '#FF6384', '#C9CBCF'],
     }],
   };
 
@@ -147,17 +115,18 @@ const handleSubmit = async (e) => {
   };
 
   if (loading) return <div className="page">Loading...</div>;
-  if (error) return <div className="page">Error: {error}</div>;
 
   return (
     <div className="page">
       <div className="header">
         <h2>Welcome Back, {user.firstname}!</h2>
         <div className="summary-card">
-          <h3>Total Monthly Expenses</h3>
+          <h3>Total Expenses</h3>
           <p className="total-amount">${totalExpenses.toFixed(2)}</p>
         </div>
       </div>
+
+      {error && <p className="error-message">{error}</p>}
 
       <div className="charts-container">
         <div className="chart-wrapper">
@@ -171,63 +140,37 @@ const handleSubmit = async (e) => {
       <div className="expense-section">
         <form onSubmit={handleSubmit} className="expense-form">
           <h3>Add New Expense</h3>
-          {error && <p className="error-message">{error}</p>}
-
           <div className="form-row">
             <div className="input-group">
               <label>Expense Name</label>
-              <input
-                type="text"
-                name="expensename"
-                value={newExpense.expensename}
-                onChange={handleInputChange}
-                required
-              />
+              <input type="text" name="expenseName" value={newExpense.expenseName} onChange={handleInputChange} required />
             </div>
-
             <div className="input-group">
               <label>Amount ($)</label>
-              <input
-                type="number"
-                name="expensecost"
-                value={newExpense.expensecost}
-                onChange={handleInputChange}
-                step="0.01"
-                required
-              />
+              <input type="number" name="amount" value={newExpense.amount} onChange={handleInputChange} step="0.01" required />
             </div>
-
-            <div className="input-group">
-              <label>Recurring</label>
-              <select
-                name="recurring"
-                value={newExpense.recurring}
-                onChange={handleInputChange}
-              >
-                <option value="Yes">Yes</option>
-                <option value="No">No</option>
-              </select>
-            </div>
-
             <div className="input-group">
               <label>Category</label>
-              <select
-                name="type"
-                value={newExpense.type}
-                onChange={handleInputChange}
-              >
-                <option value="Food">Food</option>
-                <option value="Housing">Housing</option>
-                <option value="Transport">Transport</option>
-                <option value="Utilities">Utilities</option>
-                <option value="Entertainment">Entertainment</option>
-                <option value="Other">Other</option>
+              <select name="category" value={newExpense.category} onChange={handleInputChange}>
+                <option value="FOOD">Food</option>
+                <option value="TRANSPORT">Transport</option>
+                <option value="UTILITIES">Utilities</option>
+                <option value="SUBSCRIPTIONS">Subscriptions</option>
+                <option value="ENTERTAINMENT">Entertainment</option>
+                <option value="TRAVEL">Travel</option>
+                <option value="HEALTH">Health</option>
+                <option value="OTHER">Other</option>
               </select>
             </div>
-
-            <button type="submit" className="add-button">
-              Add Expense
-            </button>
+            <div className="input-group">
+              <label>Date</label>
+              <input type="date" name="expenseDate" value={newExpense.expenseDate} onChange={handleInputChange} required />
+            </div>
+            <div className="input-group">
+              <label>Description</label>
+              <input type="text" name="description" value={newExpense.description} onChange={handleInputChange} />
+            </div>
+            <button type="submit" className="add-button">Add Expense</button>
           </div>
         </form>
 
@@ -239,16 +182,18 @@ const handleSubmit = async (e) => {
                 <th>Name</th>
                 <th>Amount</th>
                 <th>Category</th>
-                <th>Recurring</th>
+                <th>Date</th>
+                <th>Description</th>
               </tr>
             </thead>
             <tbody>
               {expenses.map((expense, index) => (
                 <tr key={index}>
-                  <td>{expense.expensename}</td>
-                  <td>${Number(expense.expensecost).toFixed(2)}</td>
-                  <td>{expense.type}</td>
-                  <td>{expense.recurring}</td>
+                  <td>{expense.expenseName}</td>
+                  <td>${Number(expense.amount).toFixed(2)}</td>
+                  <td>{expense.category}</td>
+                  <td>{expense.expenseDate}</td>
+                  <td>{expense.description}</td>
                 </tr>
               ))}
             </tbody>
