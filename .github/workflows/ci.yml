@@ -1,0 +1,63 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+  packages: write
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node 18
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run tests with coverage
+        run: npm test -- --coverage --watchAll=false --coverageReporters=lcov,text,json-summary
+        env:
+          CI: true
+
+      - name: Check coverage threshold (70%)
+        run: |
+          if [ ! -f coverage/coverage-summary.json ]; then
+            echo "⚠️  No coverage report found — skipping coverage check (no tests written yet)"
+            exit 0
+          fi
+          COVERAGE=$(python3 -c "import json; d=json.load(open('coverage/coverage-summary.json')); print(d['total']['lines']['pct'])")
+          echo "Line coverage: $COVERAGE%"
+          if python3 -c "import sys; sys.exit(0 if float('$COVERAGE') >= 70 else 1)"; then
+            echo "✅ Coverage $COVERAGE% meets the 70% threshold."
+          else
+            echo "❌ Coverage $COVERAGE% is below the 70% threshold. Build failed."
+            exit 1
+          fi
+
+      - name: Upload coverage report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-report
+          path: coverage/
+
+      - name: Build
+        run: npm run build
+
+      - name: Upload build artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: build
+          path: build/

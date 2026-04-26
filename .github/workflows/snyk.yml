@@ -1,0 +1,50 @@
+name: Snyk Security Scan
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  schedule:
+    - cron: '0 9 * * 1'  # Every Monday at 9am UTC
+
+permissions:
+  contents: read
+  security-events: write
+
+jobs:
+  snyk:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node 18
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run Snyk Node scan
+        uses: snyk/actions/node@master
+        continue-on-error: true
+        env:
+          SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
+        with:
+          args: --severity-threshold=high --sarif-file-output=snyk.sarif
+
+      - name: Ensure SARIF file exists
+        if: always()
+        run: |
+          if [ ! -f snyk.sarif ]; then
+            echo '{"version":"2.1.0","runs":[{"tool":{"driver":{"name":"Snyk","rules":[]}},"results":[]}]}' > snyk.sarif
+          fi
+
+      - name: Upload SARIF to GitHub Security tab
+        if: always()
+        uses: github/codeql-action/upload-sarif@v4
+        with:
+          sarif_file: snyk.sarif

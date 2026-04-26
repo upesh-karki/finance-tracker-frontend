@@ -1,4 +1,5 @@
 import { AuthData } from "../../auth/AuthWrapper";
+import { StatementImport } from './StatementImport';
 import { API } from "../../api/config";
 import React, { useState, useEffect } from 'react';
 import {
@@ -16,9 +17,12 @@ import { Bar, Pie } from 'react-chartjs-2';
 ChartJS.register(CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend, ArcElement);
 
 export const Private = () => {
-  const { user } = AuthData();
+  const { user, authFetch } = AuthData();
   const [expenses, setExpenses] = useState([]);
   const [totalExpenses, setTotalExpenses] = useState(0);
+  const [income, setIncome] = useState([]);
+  const [totalIncome, setTotalIncome] = useState(0);
+  const [accounts, setAccounts] = useState([]);
   const [newExpense, setNewExpense] = useState({
     expenseName: '',
     amount: '',
@@ -28,12 +32,12 @@ export const Private = () => {
   });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [showImport, setShowImport] = useState(false);
 
   const fetchExpenses = async () => {
     try {
-      const response = await fetch(API.expenses(user.memberid), {
+      const response = await authFetch(API.expenses(user.memberid), {
         method: 'GET',
-        headers: { 'Content-Type': 'application/json' }
       });
       if (!response.ok) throw new Error('Failed to fetch expenses');
       const result = await response.json();
@@ -47,17 +51,38 @@ export const Private = () => {
     }
   };
 
+  const fetchIncome = async () => {
+    try {
+      const res = await authFetch(API.income(user.memberid));
+      const result = await res.json();
+      const data = result.data || [];
+      setIncome(data);
+      setTotalIncome(data.reduce((sum, i) => sum + Number(i.amount), 0));
+    } catch (err) { /* silent */ }
+  };
+
+  const fetchAccounts = async () => {
+    try {
+      const res = await authFetch(API.accounts(user.memberid));
+      const result = await res.json();
+      setAccounts(result.data || []);
+    } catch (err) { /* silent */ }
+  };
+
   useEffect(() => {
-    if (user.memberid) fetchExpenses();
+    if (user.memberid) {
+      fetchExpenses();
+      fetchIncome();
+      fetchAccounts();
+    }
   }, [user.memberid]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
     try {
-      const response = await fetch(API.addExpense, {
+      const response = await authFetch(API.addExpense, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           memberId: user.memberid,
           expenseName: newExpense.expenseName,
@@ -78,6 +103,13 @@ export const Private = () => {
     } catch (err) {
       setError(err.message);
     }
+  };
+
+  const handleImportComplete = async (count) => {
+    setShowImport(false);
+    await fetchExpenses();
+    await fetchIncome();
+    setError('');
   };
 
   const handleInputChange = (e) => {
@@ -124,9 +156,22 @@ export const Private = () => {
           <h3>Total Expenses</h3>
           <p className="total-amount">${totalExpenses.toFixed(2)}</p>
         </div>
+        <div className="summary-card income-card">
+          <h3>Total Income</h3>
+          <p className="total-amount income-amount">${totalIncome.toFixed(2)}</p>
+        </div>
       </div>
 
       {error && <p className="error-message">{error}</p>}
+
+      {accounts.some(a => a.missingMonths && a.missingMonths.length > 0) && (
+        <div className="missing-banner">
+          <span>
+            ⚠️ Some accounts have missing statements.{' '}
+            <a href="/accounts" style={{color:'#f9e2af'}}>View Accounts →</a>
+          </span>
+        </div>
+      )}
 
       <div className="charts-container">
         <div className="chart-wrapper">
@@ -139,7 +184,16 @@ export const Private = () => {
 
       <div className="expense-section">
         <form onSubmit={handleSubmit} className="expense-form">
-          <h3>Add New Expense</h3>
+          <div className="expense-form-header">
+            <h3>Add New Expense</h3>
+            <button
+              type="button"
+              className="btn-import-statement"
+              onClick={() => setShowImport(true)}
+            >
+              📄 Import Bank Statement
+            </button>
+          </div>
           <div className="form-row">
             <div className="input-group">
               <label>Expense Name</label>
@@ -200,6 +254,14 @@ export const Private = () => {
           </table>
         </div>
       </div>
+      {showImport && (
+        <StatementImport
+          memberId={user.memberid}
+          accounts={accounts}
+          onImportComplete={handleImportComplete}
+          onClose={() => setShowImport(false)}
+        />
+      )}
     </div>
   );
 };
