@@ -268,3 +268,493 @@
   height: 300px;
   margin: 1rem 0;
 }
+/* ===== Statement Import Modal ===== */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: 16px;
+}
+
+.modal-container {
+  background: #1e1e2e;
+  border-radius: 12px;
+  width: 100%;
+  max-width: 900px;
+  max-height: 90vh;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+  overflow: hidden;
+}
+
+.modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 20px 24px;
+  border-bottom: 1px solid rgba(255,255,255,0.1);
+}
+
+.modal-header h3 {
+  margin: 0;
+  font-size: 1.2rem;
+  color: #cdd6f4;
+}
+
+.modal-close {
+  background: none;
+  border: none;
+  color: #6c7086;
+  font-size: 1.2rem;
+  cursor: pointer;
+  padding: 4px 8px;
+  border-radius: 4px;
+  transition: color 0.2s;
+}
+
+.modal-close:hover {
+  color: #cdd6f4;
+}
+
+.modal-body {
+  padding: 24px;
+  overflow-y: auto;
+  flex: 1;
+}
+
+.modal-actions {
+  display: flex;
+  gap: 12px;
+  justify-content: flex-end;
+  margin-top: 20px;
+  padding-top: 16px;
+  border-top: 1px solid rgba(255,255,255,0.08);
+}
+
+.upload-hint {
+  color: #a6adc8;
+  margin-bottom: 20px;
+  font-size: 0.9rem;
+}
+
+.drop-zone {
+  border: 2px dashed rgba(137, 180, 250, 0.4);
+  border-radius: 10px;
+  padding: 40px 20px;
+  text-align: center;
+  cursor: pointer;
+  transition: border-color 0.2s, background 0.2s;
+  margin-bottom: 20px;
+  color: #a6adc8;
+}
+
+.drop-zone:hover {
+  border-color: #89b4fa;
+  background: rgba(137, 180, 250, 0.05);
+}
+
+.drop-zone-icon {
+  font-size: 2.5rem;
+  margin-bottom: 10px;
+}
+
+.loading-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 60px 20px;
+  gap: 16px;
+  color: #cdd6f4;
+}
+
+.loading-hint {
+  color: #6c7086;
+  font-size: 0.85rem;
+}
+
+.spinner {
+  width: 40px;
+  height: 40px;
+  border: 3px solid rgba(137, 180, 250, 0.2);
+  border-top-color: #89b4fa;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+.review-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+}
+
+.review-summary {
+  color: #a6adc8;
+  font-size: 0.9rem;
+  margin: 0;
+}
+
+.transactions-table-wrapper {
+  overflow-x: auto;
+  border-radius: 8px;
+  border: 1px solid rgba(255,255,255,0.08);
+}
+
+.transactions-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.85rem;
+}
+
+.transactions-table th {
+  background: rgba(255,255,255,0.05);
+  padding: 10px 12px;
+  text-align: left;
+  color: #a6adc8;
+  font-weight: 600;
+  border-bottom: 1px solid rgba(255,255,255,0.08);
+}
+
+.transactions-table td {
+  padding: 8px 12px;
+  border-bottom: 1px solid rgba(255,255,255,0.05);
+  color: #cdd6f4;
+}
+
+.row-deselected td {
+  opacity: 0.4;
+}
+
+.table-input {
+  background: rgba(255,255,255,0.06);
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 4px;
+  color: #cdd6f4;
+  padding: 4px 8px;
+  font-size: 0.82rem;
+  width: 100%;
+  min-width: 120px;
+}
+
+.amount-input {
+  min-width: 80px;
+  max-width: 100px;
+}
+
+.table-select {
+  background: rgba(255,255,255,0.06);
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 4px;
+  color: #cdd6f4;
+  padding: 4px 6px;
+  font-size: 0.82rem;
+}
+
+.type-badge {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+.type-badge.debit {
+  background: rgba(243, 139, 168, 0.15);
+  color: #f38ba8;
+}
+
+.type-badge.credit {
+  background: rgba(166, 227, 161, 0.15);
+  color: #a6e3a1;
+}
+
+.btn-delete-row {
+  background: none;
+  border: none;
+  color: #6c7086;
+  cursor: pointer;
+  font-size: 0.85rem;
+  padding: 2px 6px;
+  border-radius: 4px;
+  transition: color 0.2s;
+}
+
+.btn-delete-row:hover {
+  color: #f38ba8;
+}
+
+.btn-primary {
+  background: #89b4fa;
+  color: #1e1e2e;
+  border: none;
+  padding: 10px 20px;
+  border-radius: 6px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: opacity 0.2s;
+}
+
+.btn-primary:hover:not(:disabled) {
+  opacity: 0.85;
+}
+
+.btn-primary:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.btn-secondary {
+  background: rgba(255,255,255,0.08);
+  color: #cdd6f4;
+  border: 1px solid rgba(255,255,255,0.1);
+  padding: 10px 20px;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.btn-secondary:hover {
+  background: rgba(255,255,255,0.13);
+}
+
+.btn-regenerate {
+  background: rgba(249, 226, 175, 0.1);
+  color: #f9e2af;
+  border: 1px solid rgba(249, 226, 175, 0.2);
+  padding: 6px 14px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 0.85rem;
+  transition: background 0.2s;
+}
+
+.btn-regenerate:hover {
+  background: rgba(249, 226, 175, 0.18);
+}
+
+.btn-import-statement {
+  background: rgba(137, 180, 250, 0.1);
+  color: #89b4fa;
+  border: 1px solid rgba(137, 180, 250, 0.25);
+  padding: 8px 16px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 0.88rem;
+  font-weight: 500;
+  transition: background 0.2s;
+}
+
+.btn-import-statement:hover {
+  background: rgba(137, 180, 250, 0.18);
+}
+
+.expense-form-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+.expense-form-header h3 {
+  margin: 0;
+}
+
+/* ===== Accounts Page ===== */
+.page-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 24px;
+}
+
+.missing-banner {
+  background: rgba(249, 226, 175, 0.1);
+  border: 1px solid rgba(249, 226, 175, 0.25);
+  border-radius: 8px;
+  padding: 12px 16px;
+  color: #f9e2af;
+  margin-bottom: 20px;
+  font-size: 0.9rem;
+}
+
+.add-account-form {
+  background: rgba(255,255,255,0.04);
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 10px;
+  padding: 24px;
+  margin-bottom: 24px;
+}
+
+.add-account-form h3 {
+  margin-top: 0;
+  margin-bottom: 16px;
+  color: #cdd6f4;
+}
+
+.form-hint {
+  color: #a6adc8;
+  font-size: 0.85rem;
+  margin: 12px 0;
+}
+
+.form-actions {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 16px;
+}
+
+.optional {
+  color: #6c7086;
+  font-size: 0.8rem;
+  font-weight: normal;
+}
+
+.empty-state {
+  text-align: center;
+  padding: 60px 20px;
+  color: #a6adc8;
+}
+
+.empty-state p {
+  margin-bottom: 8px;
+}
+
+.empty-state button {
+  margin-top: 20px;
+}
+
+.accounts-list {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.account-card {
+  background: rgba(255,255,255,0.04);
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 10px;
+  padding: 20px;
+}
+
+.account-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 12px;
+}
+
+.account-info h3 {
+  margin: 0 0 4px 0;
+  color: #cdd6f4;
+  font-size: 1rem;
+}
+
+.account-institution {
+  color: #a6adc8;
+  font-size: 0.85rem;
+  margin-right: 10px;
+}
+
+.account-type-badge {
+  display: inline-block;
+  padding: 2px 10px;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  background: rgba(137, 180, 250, 0.12);
+  color: #89b4fa;
+}
+
+.account-type-badge.credit-card {
+  background: rgba(243, 139, 168, 0.12);
+  color: #f38ba8;
+}
+
+.account-tracking-info {
+  font-size: 0.82rem;
+  color: #6c7086;
+  margin-bottom: 12px;
+}
+
+.tracking-label strong {
+  color: #a6adc8;
+}
+
+.missing-months {
+  margin-top: 8px;
+}
+
+.missing-months-label {
+  font-size: 0.82rem;
+  color: #f9e2af;
+  margin: 0 0 6px 0;
+}
+
+.missing-months-pills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.missing-pill {
+  background: rgba(249, 226, 175, 0.1);
+  border: 1px solid rgba(249, 226, 175, 0.2);
+  color: #f9e2af;
+  padding: 3px 10px;
+  border-radius: 999px;
+  font-size: 0.78rem;
+}
+
+.all-uploaded {
+  font-size: 0.85rem;
+  color: #a6e3a1;
+}
+
+/* Review tabs */
+.review-tabs {
+  display: flex;
+  gap: 4px;
+  margin-bottom: 16px;
+  border-bottom: 1px solid rgba(255,255,255,0.08);
+  padding-bottom: 0;
+}
+
+.review-tab {
+  background: none;
+  border: none;
+  color: #6c7086;
+  padding: 8px 16px;
+  cursor: pointer;
+  font-size: 0.88rem;
+  border-bottom: 2px solid transparent;
+  margin-bottom: -1px;
+  transition: color 0.2s;
+}
+
+.review-tab:hover {
+  color: #cdd6f4;
+}
+
+.review-tab.active {
+  color: #89b4fa;
+  border-bottom-color: #89b4fa;
+}
+
+/* Income card */
+.income-card .total-amount {
+  color: #a6e3a1 !important;
+}
+
+.income-amount {
+  color: #a6e3a1 !important;
+}
