@@ -20,12 +20,22 @@ export const Accounts = () => {
   const [showAddForm, setShowAddForm] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [importAccount, setImportAccount] = useState(null); // account to import statement for
+  const [institutions, setInstitutions] = useState([]);
   const [newAccount, setNewAccount] = useState({
     nickname: '',
+    institutionCode: '',
     institutionName: '',
     accountTypeCode: 'CHEQUING',
     openedDate: '',
   });
+
+  const fetchInstitutions = async () => {
+    try {
+      const res = await fetch(API.institutions);
+      const result = await res.json();
+      setInstitutions(result.data || []);
+    } catch (e) { /* silent */ }
+  };
 
   const fetchAccounts = async () => {
     try {
@@ -39,7 +49,7 @@ export const Accounts = () => {
     }
   };
 
-  useEffect(() => { if (user.memberid) fetchAccounts(); }, [user.memberid]);
+  useEffect(() => { if (user.memberid) { fetchAccounts(); fetchInstitutions(); } }, [user.memberid]);
 
   const handleAddAccount = async (e) => {
     e.preventDefault();
@@ -58,7 +68,7 @@ export const Accounts = () => {
       });
       const result = await res.json();
       if (!res.ok) throw new Error(result.message || 'Failed to add account');
-      setNewAccount({ nickname: '', institutionName: '', accountTypeCode: 'CHEQUING', openedDate: '' });
+      setNewAccount({ nickname: '', institutionCode: '', institutionName: '', accountTypeCode: 'CHEQUING', openedDate: '' });
       setShowAddForm(false);
       await fetchAccounts();
     } catch (e) {
@@ -118,8 +128,23 @@ export const Accounts = () => {
             </div>
             <div className="input-group">
               <label>Institution</label>
-              <input type="text" placeholder="e.g. TD Bank"
-                value={newAccount.institutionName} onChange={e => setNewAccount(p => ({...p, institutionName: e.target.value}))} required />
+              <select
+                value={newAccount.institutionCode}
+                onChange={e => {
+                  const inst = institutions.find(i => i.code === e.target.value);
+                  setNewAccount(p => ({
+                    ...p,
+                    institutionCode: e.target.value,
+                    institutionName: inst?.name || '',
+                  }));
+                }}
+                required
+              >
+                <option value="">— Select institution —</option>
+                {institutions.map(i => (
+                  <option key={i.code} value={i.code}>{i.name}{i.country ? ` (${i.country})` : ''}</option>
+                ))}
+              </select>
             </div>
             <div className="input-group">
               <label>Account Type</label>

@@ -697,7 +697,8 @@
 .missing-months-label {
   font-size: 0.82rem;
   color: #f9e2af;
-  margin: 0 0 6px 0;
+  margin: 0 0 8px 0;
+  display: block;
 }
 
 .missing-months-pills {
@@ -707,12 +708,13 @@
 }
 
 .missing-pill {
-  background: rgba(249, 226, 175, 0.1);
-  border: 1px solid rgba(249, 226, 175, 0.2);
+  background: rgba(249,226,175,0.12);
+  border: 1px solid rgba(249,226,175,0.25);
   color: #f9e2af;
-  padding: 3px 10px;
+  padding: 4px 12px;
   border-radius: 999px;
   font-size: 0.78rem;
+  font-weight: 500;
 }
 
 .all-uploaded {
@@ -1125,15 +1127,16 @@
 
 /* ===== Account Card v2 ===== */
 .account-card-v2 {
-  background: #1e1e2e;
-  border: 1px solid rgba(255,255,255,0.08);
+  background: #181825;
+  border: 1px solid rgba(205,214,244,0.1);
   border-radius: 14px;
   padding: 20px 24px;
-  transition: border-color 0.2s;
+  transition: border-color 0.2s, background 0.2s;
 }
 
 .account-card-v2:hover {
-  border-color: rgba(255,255,255,0.15);
+  background: #1e1e2e;
+  border-color: rgba(205,214,244,0.18);
 }
 
 .account-card-v2-header {
@@ -1161,14 +1164,14 @@
 
 .account-card-v2-name {
   font-size: 1rem;
-  font-weight: 600;
+  font-weight: 700;
   color: #cdd6f4;
   margin-bottom: 3px;
 }
 
 .account-card-v2-institution {
   font-size: 0.82rem;
-  color: #6c7086;
+  color: #a6adc8;
 }
 
 .account-card-v2-right {
@@ -1212,26 +1215,27 @@
 
 .account-card-v2-meta {
   font-size: 0.8rem;
-  color: #6c7086;
+  color: #a6adc8;
   margin-bottom: 12px;
   padding-top: 12px;
-  border-top: 1px solid rgba(255,255,255,0.05);
+  border-top: 1px solid rgba(205,214,244,0.06);
 }
 
 .account-card-v2-meta strong {
-  color: #a6adc8;
+  color: #cdd6f4;
 }
 
 .account-missing-section {
-  background: rgba(249,226,175,0.06);
-  border: 1px solid rgba(249,226,175,0.12);
+  background: rgba(249,226,175,0.08);
+  border: 1px solid rgba(249,226,175,0.18);
   border-radius: 8px;
-  padding: 12px 14px;
+  padding: 12px 16px;
 }
 
 .account-all-good {
   color: #a6e3a1;
   font-size: 0.85rem;
+  font-weight: 500;
 }
 
 .clickable-pill {
@@ -1257,4 +1261,19 @@
 
 .transfers-info-banner strong {
   color: #89b4fa;
+}
+
+/* Already-uploaded warning banner */
+.already-uploaded-banner {
+  background: rgba(249,226,175,0.1);
+  border: 1px solid rgba(249,226,175,0.25);
+  border-radius: 8px;
+  padding: 10px 14px;
+  color: #f9e2af;
+  font-size: 0.85rem;
+  margin-bottom: 12px;
+}
+
+.already-uploaded-banner strong {
+  color: #f9e2af;
 }

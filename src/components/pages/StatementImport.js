@@ -4,6 +4,7 @@ import { AuthData } from '../../auth/AuthWrapper';
 
 const EXPENSE_CATEGORIES = ['FOOD', 'TRANSPORT', 'UTILITIES', 'SUBSCRIPTIONS', 'ENTERTAINMENT', 'TRAVEL', 'HEALTH', 'OTHER'];
 const INCOME_CATEGORIES = ['SALARY', 'FREELANCE', 'REFUND', 'TRANSFER', 'OTHER'];
+const MONTH_NAMES = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
 
 export const StatementImport = ({ memberId, accounts = [], preSelectedAccountId, onImportComplete, onClose }) => {
   const [selectedFile, setSelectedFile] = useState(null);
@@ -17,6 +18,7 @@ export const StatementImport = ({ memberId, accounts = [], preSelectedAccountId,
   const [activeTab, setActiveTab] = useState('expenses');
   const [error, setError] = useState('');
   const [importProgress, setImportProgress] = useState({ done: 0, total: 0 });
+  const [alreadyUploaded, setAlreadyUploaded] = useState(null);
   const fileInputRef = useRef(null);
 
   const { user, authFetch } = AuthData();
@@ -73,6 +75,26 @@ export const StatementImport = ({ memberId, accounts = [], preSelectedAccountId,
       })));
 
       setTransfers(r.transfers || []);
+
+      // Check if this month already has data
+      if (selectedAccount && (r.expenses?.length > 0 || r.income?.length > 0)) {
+        const firstDate = (r.expenses?.[0]?.date || r.income?.[0]?.date || r.transfers?.[0]?.date);
+        if (firstDate) {
+          const d = new Date(firstDate);
+          const yr = d.getFullYear();
+          const mo = d.getMonth() + 1;
+          try {
+            const params = new URLSearchParams({ accountId: selectedAccount.id, year: yr, month: mo });
+            const statusRes = await fetch(`${API.statementStatus}?${params}`, {
+              headers: user?.token ? { 'Authorization': `Bearer ${user.token}` } : {},
+            });
+            const statusData = await statusRes.json();
+            if (statusData.data?.status === 'UPLOADED') {
+              setAlreadyUploaded({ year: yr, month: mo, count: statusData.data.transactionCount });
+            }
+          } catch (e) { /* non-critical */ }
+        }
+      }
 
       setStep('review');
       setActiveTab((r.expenses || []).length > 0 ? 'expenses' : (r.income || []).length > 0 ? 'income' : 'transfers');
@@ -149,6 +171,27 @@ export const StatementImport = ({ memberId, accounts = [], preSelectedAccountId,
     }
 
     if (failed.length > 0) setError(`${done} imported. Failed: ${failed.join(', ')}`);
+
+    // Mark statement month as uploaded if all succeeded
+    if (failed.length === 0 && selectedAccount && done > 0) {
+      const allImported = [...selectedExpenses, ...selectedIncome];
+      if (allImported.length > 0) {
+        const dateStr = allImported[0].expenseDate || allImported[0].incomeDate;
+        if (dateStr) {
+          const d = new Date(dateStr);
+          const yr = d.getFullYear();
+          const mo = d.getMonth() + 1;
+          try {
+            const params = new URLSearchParams({ accountId: selectedAccount.id, year: yr, month: mo, transactionCount: done });
+            await fetch(`${API.markUploaded}?${params}`, {
+              method: 'POST',
+              headers: user?.token ? { 'Authorization': `Bearer ${user.token}` } : {},
+            });
+          } catch (e) { /* non-critical */ }
+        }
+      }
+    }
+
     onImportComplete(done);
   };
 
@@ -212,6 +255,12 @@ export const StatementImport = ({ memberId, accounts = [], preSelectedAccountId,
 
         {step === 'review' && (
           <div className="modal-body review-step">
+            {alreadyUploaded && (
+              <div className="already-uploaded-banner">
+                ⚠️ <strong>{MONTH_NAMES[alreadyUploaded.month - 1]} {alreadyUploaded.year}</strong> already has {alreadyUploaded.count} transactions imported.
+                Proceeding will <strong>replace</strong> that data with this upload.
+              </div>
+            )}
             <div className="review-header">
               <p className="review-summary">
                 Found <strong>{result?.expenseCount || 0}</strong> expenses &nbsp;·&nbsp;

@@ -25,6 +25,9 @@ export const API = {
   createAccount:      `${API_BASE}/api/v1/accounts`,
   deleteAccount:      (accountId) => `${API_BASE}/api/v1/accounts/${accountId}`,
   missingMonths:      (accountId) => `${API_BASE}/api/v1/accounts/${accountId}/missing-months`,
+  institutions:       `${API_BASE}/api/v1/accounts/institutions`,
+  markUploaded:       `${API_BASE}/api/statements/mark-uploaded`,
+  statementStatus:    `${API_BASE}/api/statements/status`,
   // Income
   income:             (memberId) => `${API_BASE}/api/v1/income/member/${memberId}`,
   addIncome:          `${API_BASE}/api/v1/income`,
