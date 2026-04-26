@@ -5,13 +5,14 @@ import { AuthData } from '../../auth/AuthWrapper';
 const EXPENSE_CATEGORIES = ['FOOD', 'TRANSPORT', 'UTILITIES', 'SUBSCRIPTIONS', 'ENTERTAINMENT', 'TRAVEL', 'HEALTH', 'OTHER'];
 const INCOME_CATEGORIES = ['SALARY', 'FREELANCE', 'REFUND', 'TRANSFER', 'OTHER'];
 
-export const StatementImport = ({ memberId, accounts = [], onImportComplete, onClose }) => {
+export const StatementImport = ({ memberId, accounts = [], preSelectedAccountId, onImportComplete, onClose }) => {
   const [selectedFile, setSelectedFile] = useState(null);
-  const [selectedAccountId, setSelectedAccountId] = useState('');
+  const [selectedAccountId, setSelectedAccountId] = useState(preSelectedAccountId ? String(preSelectedAccountId) : '');
   const [uploading, setUploading] = useState(false);
   const [result, setResult] = useState(null); // full response
   const [expenses, setExpenses] = useState([]);
   const [income, setIncome] = useState([]);
+  const [transfers, setTransfers] = useState([]);
   const [step, setStep] = useState('upload'); // 'upload' | 'review' | 'importing'
   const [activeTab, setActiveTab] = useState('expenses');
   const [error, setError] = useState('');
@@ -71,8 +72,10 @@ export const StatementImport = ({ memberId, accounts = [], onImportComplete, onC
         incomeCategoryCode: tx.suggestedCategory || 'OTHER',
       })));
 
+      setTransfers(r.transfers || []);
+
       setStep('review');
-      setActiveTab((r.expenses || []).length > 0 ? 'expenses' : 'income');
+      setActiveTab((r.expenses || []).length > 0 ? 'expenses' : (r.income || []).length > 0 ? 'income' : 'transfers');
     } catch (err) {
       setError(err.message);
     } finally {
@@ -213,8 +216,8 @@ export const StatementImport = ({ memberId, accounts = [], onImportComplete, onC
               <p className="review-summary">
                 Found <strong>{result?.expenseCount || 0}</strong> expenses &nbsp;·&nbsp;
                 <strong>{result?.incomeCount || 0}</strong> income &nbsp;·&nbsp;
-                <strong>{result?.creditCardPaymentCount || 0}</strong> CC payments
-                &nbsp;·&nbsp; <strong>{totalSelected}</strong> selected
+                <strong>{result?.transferCount || 0}</strong> transfers &nbsp;·&nbsp;
+                <strong>{totalSelected}</strong> selected
               </p>
               <button className="btn-regenerate" onClick={handleRegenerate}>🔄 Regenerate</button>
             </div>
@@ -232,6 +235,14 @@ export const StatementImport = ({ memberId, accounts = [], onImportComplete, onC
               >
                 Income ({income.length})
               </button>
+              {transfers.length > 0 && (
+                <button
+                  className={`review-tab ${activeTab === 'transfers' ? 'active' : ''}`}
+                  onClick={() => setActiveTab('transfers')}
+                >
+                  Transfers ({transfers.length})
+                </button>
+              )}
               {result?.creditCardPayments?.length > 0 && (
                 <button
                   className={`review-tab ${activeTab === 'cc' ? 'active' : ''}`}
@@ -307,6 +318,30 @@ export const StatementImport = ({ memberId, accounts = [], onImportComplete, onC
                       </tr>
                     ))}
                     {income.length === 0 && <tr><td colSpan={6} style={{textAlign:'center', color:'#6c7086', padding:20}}>No income found</td></tr>}
+                  </tbody>
+                </table>
+              </div>
+            )}
+
+            {activeTab === 'transfers' && (
+              <div className="transactions-table-wrapper">
+                <div className="transfers-info-banner">
+                  ℹ️ These are <strong>neutral transactions</strong> — transfers between your own accounts, credit card payments, and investment contributions. They won't be imported as expenses or income.
+                </div>
+                <table className="transactions-table">
+                  <thead>
+                    <tr><th>Description</th><th>Amount ($)</th><th>Type</th><th>Date</th></tr>
+                  </thead>
+                  <tbody>
+                    {transfers.map((tx, i) => (
+                      <tr key={i}>
+                        <td>{tx.description}</td>
+                        <td>${parseFloat(tx.amount || 0).toFixed(2)}</td>
+                        <td><span className={`type-badge ${tx.type === 'CREDIT' ? 'credit' : 'debit'}`}>{tx.type || 'DEBIT'}</span></td>
+                        <td>{tx.date}</td>
+                      </tr>
+                    ))}
+                    {transfers.length === 0 && <tr><td colSpan={4} style={{textAlign:'center',color:'#6c7086',padding:20}}>No transfers detected</td></tr>}
                   </tbody>
                 </table>
               </div>

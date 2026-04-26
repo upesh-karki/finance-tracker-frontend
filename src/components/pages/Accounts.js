@@ -1,12 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { AuthData } from '../../auth/AuthWrapper';
 import { API } from '../../api/config';
+import { StatementImport } from './StatementImport';
 
 const ACCOUNT_TYPES = [
-  { code: 'CHEQUING', label: 'Chequing Account' },
-  { code: 'SAVINGS', label: 'Savings Account' },
-  { code: 'CREDIT_CARD', label: 'Credit Card' },
-  { code: 'INVESTMENT', label: 'Investment Account' },
+  { code: 'CHEQUING',    label: 'Chequing',    color: '#89b4fa', icon: '🏦' },
+  { code: 'SAVINGS',     label: 'Savings',     color: '#a6e3a1', icon: '💰' },
+  { code: 'CREDIT_CARD', label: 'Credit Card', color: '#f38ba8', icon: '💳' },
+  { code: 'INVESTMENT',  label: 'Investment',  color: '#f9e2af', icon: '📈' },
 ];
 
 const MONTH_NAMES = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
@@ -18,6 +19,7 @@ export const Accounts = () => {
   const [error, setError] = useState('');
   const [showAddForm, setShowAddForm] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [importAccount, setImportAccount] = useState(null); // account to import statement for
   const [newAccount, setNewAccount] = useState({
     nickname: '',
     institutionName: '',
@@ -37,9 +39,7 @@ export const Accounts = () => {
     }
   };
 
-  useEffect(() => {
-    if (user.memberid) fetchAccounts();
-  }, [user.memberid]);
+  useEffect(() => { if (user.memberid) fetchAccounts(); }, [user.memberid]);
 
   const handleAddAccount = async (e) => {
     e.preventDefault();
@@ -78,14 +78,22 @@ export const Accounts = () => {
     }
   };
 
+  const handleImportComplete = async () => {
+    setImportAccount(null);
+    await fetchAccounts(); // refresh missing months
+  };
+
   const totalMissing = accounts.reduce((sum, a) => sum + (a.missingMonths?.length || 0), 0);
 
-  if (loading) return <div className="page">Loading...</div>;
+  if (loading) return <div className="page"><div className="loading-state"><div className="spinner" /><p>Loading accounts...</p></div></div>;
 
   return (
     <div className="page">
       <div className="page-header">
-        <h2>Financial Accounts</h2>
+        <div>
+          <h2 style={{margin:0,color:'#cdd6f4'}}>Financial Accounts</h2>
+          <p style={{margin:'4px 0 0',color:'#6c7086',fontSize:'0.85rem'}}>{accounts.length} account{accounts.length !== 1 ? 's' : ''} configured</p>
+        </div>
         <button className="btn-import-statement" onClick={() => setShowAddForm(!showAddForm)}>
           {showAddForm ? '✕ Cancel' : '+ Add Account'}
         </button>
@@ -93,11 +101,11 @@ export const Accounts = () => {
 
       {totalMissing > 0 && (
         <div className="missing-banner">
-          <span>⚠️ You have <strong>{totalMissing}</strong> missing statement{totalMissing !== 1 ? 's' : ''}. Upload them from the Dashboard to keep your data complete.</span>
+          ⚠️ <strong>{totalMissing}</strong> missing statement{totalMissing !== 1 ? 's' : ''} across your accounts. Upload them below to keep your data complete.
         </div>
       )}
 
-      {error && <p className="error-message">{error}</p>}
+      {error && <p className="auth-error">{error}</p>}
 
       {showAddForm && (
         <form className="add-account-form" onSubmit={handleAddAccount}>
@@ -105,103 +113,114 @@ export const Accounts = () => {
           <div className="form-row">
             <div className="input-group">
               <label>Nickname</label>
-              <input
-                type="text"
-                placeholder="e.g. TD Everyday Chequing"
-                value={newAccount.nickname}
-                onChange={e => setNewAccount(p => ({ ...p, nickname: e.target.value }))}
-                required
-              />
+              <input type="text" placeholder="e.g. TD Everyday Chequing"
+                value={newAccount.nickname} onChange={e => setNewAccount(p => ({...p, nickname: e.target.value}))} required />
             </div>
             <div className="input-group">
               <label>Institution</label>
-              <input
-                type="text"
-                placeholder="e.g. TD Bank"
-                value={newAccount.institutionName}
-                onChange={e => setNewAccount(p => ({ ...p, institutionName: e.target.value }))}
-                required
-              />
+              <input type="text" placeholder="e.g. TD Bank"
+                value={newAccount.institutionName} onChange={e => setNewAccount(p => ({...p, institutionName: e.target.value}))} required />
             </div>
             <div className="input-group">
               <label>Account Type</label>
-              <select
-                value={newAccount.accountTypeCode}
-                onChange={e => setNewAccount(p => ({ ...p, accountTypeCode: e.target.value }))}
-              >
-                {ACCOUNT_TYPES.map(t => (
-                  <option key={t.code} value={t.code}>{t.label}</option>
-                ))}
+              <select value={newAccount.accountTypeCode} onChange={e => setNewAccount(p => ({...p, accountTypeCode: e.target.value}))}>
+                {ACCOUNT_TYPES.map(t => <option key={t.code} value={t.code}>{t.icon} {t.label}</option>)}
               </select>
             </div>
             <div className="input-group">
               <label>Date Opened <span className="optional">(optional)</span></label>
-              <input
-                type="date"
-                value={newAccount.openedDate}
-                onChange={e => setNewAccount(p => ({ ...p, openedDate: e.target.value }))}
-              />
+              <input type="date" value={newAccount.openedDate} onChange={e => setNewAccount(p => ({...p, openedDate: e.target.value}))} />
             </div>
           </div>
-          <p className="form-hint">
-            💡 If opened before this year, we'll track statements from <strong>Jan {new Date().getFullYear()}</strong> onwards. You can optionally upload older statements too.
-          </p>
+          <p className="form-hint">💡 If opened before this year, we'll track statements from <strong>Jan {new Date().getFullYear()}</strong>. You can upload older statements anytime.</p>
           <div className="form-actions">
-            <button type="submit" className="btn-primary" disabled={submitting}>
-              {submitting ? 'Adding...' : 'Add Account'}
-            </button>
+            <button type="submit" className="btn-primary" disabled={submitting}>{submitting ? 'Adding...' : 'Add Account'}</button>
           </div>
         </form>
       )}
 
       {accounts.length === 0 && !showAddForm ? (
         <div className="empty-state">
-          <p>🏦 No accounts added yet.</p>
-          <p>Add your bank accounts and credit cards to start tracking your statements.</p>
-          <button className="btn-primary" onClick={() => setShowAddForm(true)}>Add Your First Account</button>
+          <div style={{fontSize:'3rem',marginBottom:16}}>🏦</div>
+          <h3 style={{color:'#cdd6f4',margin:'0 0 8px'}}>No accounts yet</h3>
+          <p>Add your bank accounts and credit cards to start importing statements.</p>
+          <button className="btn-primary" style={{marginTop:20}} onClick={() => setShowAddForm(true)}>Add Your First Account</button>
         </div>
       ) : (
         <div className="accounts-list">
-          {accounts.map(account => (
-            <div key={account.id} className="account-card">
-              <div className="account-card-header">
-                <div className="account-info">
-                  <h3>{account.nickname}</h3>
-                  <span className="account-institution">{account.institutionName}</span>
-                  <span className={`account-type-badge ${account.accountTypeCode.toLowerCase().replace('_','-')}`}>
-                    {ACCOUNT_TYPES.find(t => t.code === account.accountTypeCode)?.label || account.accountTypeCode}
-                  </span>
-                </div>
-                <div className="account-actions">
-                  <button className="btn-delete-row" onClick={() => handleDelete(account.id)} title="Remove account">🗑</button>
-                </div>
-              </div>
-
-              <div className="account-tracking-info">
-                <span className="tracking-label">Tracking from: <strong>{account.trackingStartDate}</strong></span>
-              </div>
-
-              {account.missingMonths && account.missingMonths.length > 0 && (
-                <div className="missing-months">
-                  <p className="missing-months-label">⚠️ Missing statements:</p>
-                  <div className="missing-months-pills">
-                    {account.missingMonths.map(m => (
-                      <span key={`${m.year}-${m.month}`} className="missing-pill">
-                        {MONTH_NAMES[m.month - 1]} {m.year}
-                      </span>
-                    ))}
+          {accounts.map(account => {
+            const typeInfo = ACCOUNT_TYPES.find(t => t.code === account.accountTypeCode) || ACCOUNT_TYPES[0];
+            const hasMissing = account.missingMonths?.length > 0;
+            return (
+              <div key={account.id} className="account-card-v2">
+                {/* Card header */}
+                <div className="account-card-v2-header">
+                  <div className="account-card-v2-icon" style={{background: `${typeInfo.color}18`, border: `1px solid ${typeInfo.color}30`}}>
+                    <span>{typeInfo.icon}</span>
+                  </div>
+                  <div className="account-card-v2-info">
+                    <div className="account-card-v2-name">{account.nickname}</div>
+                    <div className="account-card-v2-institution">{account.institutionName}</div>
+                  </div>
+                  <div className="account-card-v2-right">
+                    <span className="account-type-badge-v2" style={{background:`${typeInfo.color}18`, color: typeInfo.color, borderColor:`${typeInfo.color}30`}}>
+                      {typeInfo.label}
+                    </span>
+                    <div className="account-card-v2-actions">
+                      <button
+                        className="btn-upload-statement"
+                        onClick={() => setImportAccount(account)}
+                        title="Upload Statement"
+                      >
+                        📄 Upload Statement
+                      </button>
+                      <button className="btn-delete-row" onClick={() => handleDelete(account.id)} title="Remove account">🗑</button>
+                    </div>
                   </div>
                 </div>
-              )}
 
-              {(!account.missingMonths || account.missingMonths.length === 0) && (
-                <div className="all-uploaded">
-                  <span>✅ All statements uploaded</span>
+                {/* Tracking info */}
+                <div className="account-card-v2-meta">
+                  <span>Tracking from <strong>{account.trackingStartDate}</strong></span>
                 </div>
-              )}
-            </div>
-          ))}
+
+                {/* Missing months */}
+                {hasMissing ? (
+                  <div className="account-missing-section">
+                    <span className="missing-months-label">⚠️ Missing statements — click Upload Statement to add:</span>
+                    <div className="missing-months-pills">
+                      {account.missingMonths.map(m => (
+                        <span
+                          key={`${m.year}-${m.month}`}
+                          className="missing-pill clickable-pill"
+                          onClick={() => setImportAccount(account)}
+                          title="Upload statement for this month"
+                        >
+                          {MONTH_NAMES[m.month - 1]} {m.year}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                ) : (
+                  <div className="account-all-good">
+                    <span>✅ All statements uploaded — you're up to date</span>
+                  </div>
+                )}
+              </div>
+            );
+          })}
         </div>
+      )}
+
+      {/* Statement Import Modal — triggered per account */}
+      {importAccount && (
+        <StatementImport
+          memberId={user.memberid}
+          accounts={accounts}
+          preSelectedAccountId={importAccount.id}
+          onImportComplete={handleImportComplete}
+          onClose={() => setImportAccount(null)}
+        />
       )}
     </div>
   );
