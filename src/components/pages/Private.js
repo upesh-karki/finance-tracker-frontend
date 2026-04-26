@@ -17,7 +17,7 @@ import { Bar, Pie } from 'react-chartjs-2';
 ChartJS.register(CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend, ArcElement);
 
 export const Private = () => {
-  const { user } = AuthData();
+  const { user, authFetch } = AuthData();
   const [expenses, setExpenses] = useState([]);
   const [totalExpenses, setTotalExpenses] = useState(0);
   const [income, setIncome] = useState([]);
@@ -36,9 +36,8 @@ export const Private = () => {
 
   const fetchExpenses = async () => {
     try {
-      const response = await fetch(API.expenses(user.memberid), {
+      const response = await authFetch(API.expenses(user.memberid), {
         method: 'GET',
-        headers: { 'Content-Type': 'application/json' }
       });
       if (!response.ok) throw new Error('Failed to fetch expenses');
       const result = await response.json();
@@ -54,7 +53,7 @@ export const Private = () => {
 
   const fetchIncome = async () => {
     try {
-      const res = await fetch(API.income(user.memberid));
+      const res = await authFetch(API.income(user.memberid));
       const result = await res.json();
       const data = result.data || [];
       setIncome(data);
@@ -64,7 +63,7 @@ export const Private = () => {
 
   const fetchAccounts = async () => {
     try {
-      const res = await fetch(API.accounts(user.memberid));
+      const res = await authFetch(API.accounts(user.memberid));
       const result = await res.json();
       setAccounts(result.data || []);
     } catch (err) { /* silent */ }
@@ -82,9 +81,8 @@ export const Private = () => {
     e.preventDefault();
     setError('');
     try {
-      const response = await fetch(API.addExpense, {
+      const response = await authFetch(API.addExpense, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           memberId: user.memberid,
           expenseName: newExpense.expenseName,

@@ -92,9 +92,19 @@ export const AuthWrapper = () => {
     ...(user.token ? { "Authorization": `Bearer ${user.token}` } : {}),
   });
 
+  // Authenticated fetch — automatically adds JWT header
+  const authFetch = async (url, options = {}) => {
+    const headers = {
+      'Content-Type': 'application/json',
+      ...(options.headers || {}),
+      ...(user.token ? { 'Authorization': `Bearer ${user.token}` } : {}),
+    };
+    return fetch(url, { ...options, headers });
+  };
+
   return (
     <GoogleOAuthProvider clientId={GOOGLE_CLIENT_ID}>
-      <AuthContext.Provider value={{ user, login, googleLogin, logout, authHeaders, setAuthUser }}>
+      <AuthContext.Provider value={{ user, login, googleLogin, logout, authHeaders, setAuthUser, authFetch }}>
         <RenderHeader />
         <RenderMenu />
         <RenderRoutes />

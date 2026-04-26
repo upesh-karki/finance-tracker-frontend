@@ -1,5 +1,6 @@
 import React, { useState, useRef } from 'react';
 import { API } from '../../api/config';
+import { AuthData } from '../../auth/AuthWrapper';
 
 const EXPENSE_CATEGORIES = ['FOOD', 'TRANSPORT', 'UTILITIES', 'SUBSCRIPTIONS', 'ENTERTAINMENT', 'TRAVEL', 'HEALTH', 'OTHER'];
 const INCOME_CATEGORIES = ['SALARY', 'FREELANCE', 'REFUND', 'TRANSFER', 'OTHER'];
@@ -17,6 +18,7 @@ export const StatementImport = ({ memberId, accounts = [], onImportComplete, onC
   const [importProgress, setImportProgress] = useState({ done: 0, total: 0 });
   const fileInputRef = useRef(null);
 
+  const { user, authFetch } = AuthData();
   const selectedAccount = accounts.find(a => String(a.id) === String(selectedAccountId));
 
   const handleFileChange = (e) => {
@@ -41,7 +43,11 @@ export const StatementImport = ({ memberId, accounts = [], onImportComplete, onC
         url += `?accountTypeCode=${selectedAccount.accountTypeCode}`;
       }
 
-      const response = await fetch(url, { method: 'POST', body: formData });
+      const response = await fetch(url, {
+        method: 'POST',
+        body: formData,
+        headers: user?.token ? { 'Authorization': `Bearer ${user.token}` } : {},
+      });
       const data = await response.json();
 
       if (!response.ok || !data.data) {
@@ -103,9 +109,8 @@ export const StatementImport = ({ memberId, accounts = [], onImportComplete, onC
 
     for (const tx of selectedExpenses) {
       try {
-        const res = await fetch(API.addExpense, {
+        const res = await authFetch(API.addExpense, {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             memberId, accountId,
             expenseName: tx.expenseName,
@@ -123,9 +128,8 @@ export const StatementImport = ({ memberId, accounts = [], onImportComplete, onC
 
     for (const tx of selectedIncome) {
       try {
-        const res = await fetch(API.addIncome, {
+        const res = await authFetch(API.addIncome, {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             memberId, accountId,
             sourceName: tx.sourceName,

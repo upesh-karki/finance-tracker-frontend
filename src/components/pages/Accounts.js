@@ -12,7 +12,7 @@ const ACCOUNT_TYPES = [
 const MONTH_NAMES = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
 
 export const Accounts = () => {
-  const { user } = AuthData();
+  const { user, authFetch } = AuthData();
   const [accounts, setAccounts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -27,7 +27,7 @@ export const Accounts = () => {
 
   const fetchAccounts = async () => {
     try {
-      const res = await fetch(API.accounts(user.memberid));
+      const res = await authFetch(API.accounts(user.memberid));
       const result = await res.json();
       setAccounts(result.data || []);
     } catch (e) {
@@ -46,9 +46,8 @@ export const Accounts = () => {
     setSubmitting(true);
     setError('');
     try {
-      const res = await fetch(API.createAccount, {
+      const res = await authFetch(API.createAccount, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           memberId: user.memberid,
           nickname: newAccount.nickname,
@@ -72,7 +71,7 @@ export const Accounts = () => {
   const handleDelete = async (accountId) => {
     if (!window.confirm('Remove this account?')) return;
     try {
-      await fetch(API.deleteAccount(accountId), { method: 'DELETE' });
+      await authFetch(API.deleteAccount(accountId), { method: 'DELETE' });
       await fetchAccounts();
     } catch (e) {
       setError('Failed to remove account');

@@ -1,13 +1,16 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { API } from "../../api/config";
+import { AuthData } from "../../auth/AuthWrapper";
+
+const GOOGLE_CLIENT_ID = "389529819718-sb52ttlbk8jnt2to2drng5a4vjfq70cm.apps.googleusercontent.com";
 
 export const Register = () => {
   const navigate = useNavigate();
-  const [step, setStep] = useState("form"); // 'form' | 'success'
+  const { googleLogin } = AuthData();
   const [loading, setLoading] = useState(false);
+  const [googleLoading, setGoogleLoading] = useState(false);
   const [error, setError] = useState("");
-  const [registeredEmail, setRegisteredEmail] = useState("");
   const [formData, setFormData] = useState({
     firstName: "",
     lastName: "",
@@ -15,6 +18,39 @@ export const Register = () => {
     password: "",
     confirmPassword: "",
   });
+
+  // Mount Google Sign In button
+  useEffect(() => {
+    const initGoogle = () => {
+      if (window.google?.accounts?.id) {
+        window.google.accounts.id.initialize({
+          client_id: GOOGLE_CLIENT_ID,
+          callback: handleGoogleCredential,
+        });
+        window.google.accounts.id.renderButton(
+          document.getElementById("google-register-btn"),
+          { theme: "filled_black", size: "large", width: 340, text: "signup_with" }
+        );
+      }
+    };
+    // Try immediately, then retry after script loads
+    initGoogle();
+    const timer = setTimeout(initGoogle, 1000);
+    return () => clearTimeout(timer);
+  }, []);
+
+  const handleGoogleCredential = async (credentialResponse) => {
+    setGoogleLoading(true);
+    setError("");
+    try {
+      await googleLogin(credentialResponse.credential);
+      navigate("/");
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setGoogleLoading(false);
+    }
+  };
 
   const handleChange = (e) => {
     setFormData(p => ({ ...p, [e.target.name]: e.target.value }));
@@ -47,8 +83,6 @@ export const Register = () => {
       });
       const result = await res.json();
       if (!res.ok) throw new Error(result.message || "Registration failed");
-
-      setRegisteredEmail(formData.email);
       navigate("/verify-email", { state: { email: formData.email } });
     } catch (err) {
       setError(err.message);
@@ -59,10 +93,17 @@ export const Register = () => {
 
   return (
     <div className="auth-page">
+      <script src="https://accounts.google.com/gsi/client" async defer />
       <div className="auth-card">
         <div className="auth-logo">💰</div>
         <h1 className="auth-title">Create your account</h1>
         <p className="auth-subtitle">Start tracking your finances today</p>
+
+        {/* Google Sign Up — skip form entirely */}
+        <div id="google-register-btn" className="google-btn-wrapper" />
+        {googleLoading && <p style={{textAlign:'center',color:'#a6adc8',fontSize:'0.85rem',margin:'8px 0'}}>Signing up with Google...</p>}
+
+        <div className="auth-divider"><span>or sign up with email</span></div>
 
         <form onSubmit={handleSubmit} className="auth-form">
           <div className="auth-row">
