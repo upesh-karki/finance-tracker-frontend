@@ -1277,3 +1277,17 @@
 .already-uploaded-banner strong {
   color: #f9e2af;
 }
+
+.institution-badge-banner {
+  background: rgba(137,180,250,0.08);
+  border: 1px solid rgba(137,180,250,0.2);
+  border-radius: 8px;
+  padding: 8px 14px;
+  color: #89b4fa;
+  font-size: 0.83rem;
+  margin-bottom: 10px;
+}
+
+.institution-badge-banner strong {
+  color: #cdd6f4;
+}

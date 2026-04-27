@@ -6,23 +6,41 @@ const EXPENSE_CATEGORIES = ['FOOD', 'TRANSPORT', 'UTILITIES', 'SUBSCRIPTIONS', '
 const INCOME_CATEGORIES = ['SALARY', 'FREELANCE', 'REFUND', 'TRANSFER', 'OTHER'];
 const MONTH_NAMES = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
 
+/** Returns the year/month that the majority of transactions fall in. */
+const detectStatementMonth = (transactions) => {
+  const counts = {};
+  for (const tx of transactions) {
+    const d = new Date(tx.expenseDate || tx.incomeDate || tx.date);
+    if (isNaN(d)) continue;
+    const key = `${d.getFullYear()}-${d.getMonth() + 1}`;
+    counts[key] = (counts[key] || 0) + 1;
+  }
+  const best = Object.entries(counts).sort((a, b) => b[1] - a[1])[0];
+  if (!best) return null;
+  const [yr, mo] = best[0].split('-').map(Number);
+  return { year: yr, month: mo };
+};
+
 export const StatementImport = ({ memberId, accounts = [], preSelectedAccountId, onImportComplete, onClose }) => {
-  const [selectedFile, setSelectedFile] = useState(null);
+  const [selectedFile, setSelectedFile]           = useState(null);
   const [selectedAccountId, setSelectedAccountId] = useState(preSelectedAccountId ? String(preSelectedAccountId) : '');
-  const [uploading, setUploading] = useState(false);
-  const [result, setResult] = useState(null); // full response
-  const [expenses, setExpenses] = useState([]);
-  const [income, setIncome] = useState([]);
-  const [transfers, setTransfers] = useState([]);
-  const [step, setStep] = useState('upload'); // 'upload' | 'review' | 'importing'
-  const [activeTab, setActiveTab] = useState('expenses');
-  const [error, setError] = useState('');
-  const [importProgress, setImportProgress] = useState({ done: 0, total: 0 });
-  const [alreadyUploaded, setAlreadyUploaded] = useState(null);
+  const [uploading, setUploading]                 = useState(false);
+  const [result, setResult]                       = useState(null);
+  const [expenses, setExpenses]                   = useState([]);
+  const [income, setIncome]                       = useState([]);
+  const [transfers, setTransfers]                 = useState([]);
+  const [step, setStep]                           = useState('upload'); // 'upload' | 'review' | 'importing'
+  const [activeTab, setActiveTab]                 = useState('expenses');
+  const [error, setError]                         = useState('');
+  const [importProgress, setImportProgress]       = useState({ done: 0, total: 0 });
+  const [alreadyUploaded, setAlreadyUploaded]     = useState(null);
   const fileInputRef = useRef(null);
 
   const { user, authFetch } = AuthData();
   const selectedAccount = accounts.find(a => String(a.id) === String(selectedAccountId));
+
+  // Institution name from the selected account — passed to every imported transaction
+  const institutionName = selectedAccount?.institutionName || selectedAccount?.institutionCode || null;
 
   const handleFileChange = (e) => {
     const file = e.target.files[0];
@@ -76,21 +94,23 @@ export const StatementImport = ({ memberId, accounts = [], preSelectedAccountId,
 
       setTransfers(r.transfers || []);
 
-      // Check if this month already has data
-      if (selectedAccount && (r.expenses?.length > 0 || r.income?.length > 0)) {
-        const firstDate = (r.expenses?.[0]?.date || r.income?.[0]?.date || r.transfers?.[0]?.date);
-        if (firstDate) {
-          const d = new Date(firstDate);
-          const yr = d.getFullYear();
-          const mo = d.getMonth() + 1;
+      // Check if this month is already marked uploaded
+      if (selectedAccount) {
+        const allDates = [
+          ...(r.expenses || []).map(t => ({ date: t.date })),
+          ...(r.income   || []).map(t => ({ date: t.date })),
+          ...(r.transfers || []).map(t => ({ date: t.date })),
+        ];
+        const detected = detectStatementMonth(allDates.map(t => ({ expenseDate: t.date })));
+        if (detected) {
           try {
-            const params = new URLSearchParams({ accountId: selectedAccount.id, year: yr, month: mo });
+            const params = new URLSearchParams({ accountId: selectedAccount.id, year: detected.year, month: detected.month });
             const statusRes = await fetch(`${API.statementStatus}?${params}`, {
               headers: user?.token ? { 'Authorization': `Bearer ${user.token}` } : {},
             });
             const statusData = await statusRes.json();
             if (statusData.data?.status === 'UPLOADED') {
-              setAlreadyUploaded({ year: yr, month: mo, count: statusData.data.transactionCount });
+              setAlreadyUploaded({ year: detected.year, month: detected.month, count: statusData.data.transactionCount });
             }
           } catch (e) { /* non-critical */ }
         }
@@ -122,8 +142,8 @@ export const StatementImport = ({ memberId, accounts = [], preSelectedAccountId,
   const selectAllIncome = (v) => setIncome(prev => prev.map(t => ({ ...t, _selected: v })));
 
   const selectedExpenses = expenses.filter(t => t._selected);
-  const selectedIncome = income.filter(t => t._selected);
-  const totalSelected = selectedExpenses.length + selectedIncome.length;
+  const selectedIncome   = income.filter(t => t._selected);
+  const totalSelected    = selectedExpenses.length + selectedIncome.length;
 
   const handleConfirmImport = async () => {
     setStep('importing');
@@ -137,12 +157,14 @@ export const StatementImport = ({ memberId, accounts = [], preSelectedAccountId,
         const res = await authFetch(API.addExpense, {
           method: 'POST',
           body: JSON.stringify({
-            memberId, accountId,
-            expenseName: tx.expenseName,
-            amount: parseFloat(tx.amount),
-            category: tx.category,
-            description: tx.description || '',
-            expenseDate: tx.expenseDate,
+            memberId,
+            accountId,
+            institutionName,
+            expenseName:  tx.expenseName,
+            amount:       parseFloat(tx.amount),
+            category:     tx.category,
+            description:  tx.description || '',
+            expenseDate:  tx.expenseDate,
           }),
         });
         if (!res.ok) throw new Error('Failed');
@@ -156,12 +178,14 @@ export const StatementImport = ({ memberId, accounts = [], preSelectedAccountId,
         const res = await authFetch(API.addIncome, {
           method: 'POST',
           body: JSON.stringify({
-            memberId, accountId,
-            sourceName: tx.sourceName,
-            amount: parseFloat(tx.amount),
-            incomeCategoryCode: tx.incomeCategoryCode,
-            incomeDate: tx.incomeDate,
-            description: tx.description || '',
+            memberId,
+            accountId,
+            institutionName,
+            sourceName:          tx.sourceName,
+            amount:              parseFloat(tx.amount),
+            incomeCategoryCode:  tx.incomeCategoryCode,
+            incomeDate:          tx.incomeDate,
+            description:         tx.description || '',
           }),
         });
         if (!res.ok) throw new Error('Failed');
@@ -170,25 +194,28 @@ export const StatementImport = ({ memberId, accounts = [], preSelectedAccountId,
       } catch { failed.push(tx.sourceName); }
     }
 
-    if (failed.length > 0) setError(`${done} imported. Failed: ${failed.join(', ')}`);
+    if (failed.length > 0) {
+      setError(`${done} imported. ${failed.length} failed: ${failed.join(', ')}`);
+    }
 
-    // Mark statement month as uploaded if all succeeded
-    if (failed.length === 0 && selectedAccount && done > 0) {
-      const allImported = [...selectedExpenses, ...selectedIncome];
-      if (allImported.length > 0) {
-        const dateStr = allImported[0].expenseDate || allImported[0].incomeDate;
-        if (dateStr) {
-          const d = new Date(dateStr);
-          const yr = d.getFullYear();
-          const mo = d.getMonth() + 1;
-          try {
-            const params = new URLSearchParams({ accountId: selectedAccount.id, year: yr, month: mo, transactionCount: done });
-            await fetch(`${API.markUploaded}?${params}`, {
-              method: 'POST',
-              headers: user?.token ? { 'Authorization': `Bearer ${user.token}` } : {},
-            });
-          } catch (e) { /* non-critical */ }
-        }
+    // Always mark the statement month as uploaded — even on partial failure.
+    // The user has clearly processed this statement; we don't want the pill to persist.
+    if (selectedAccount && (done > 0 || totalSelected > 0)) {
+      const allTx = [...selectedExpenses, ...selectedIncome];
+      const detected = detectStatementMonth(allTx);
+      if (detected) {
+        try {
+          const params = new URLSearchParams({
+            accountId:        selectedAccount.id,
+            year:             detected.year,
+            month:            detected.month,
+            transactionCount: done,
+          });
+          await fetch(`${API.markUploaded}?${params}`, {
+            method:  'POST',
+            headers: user?.token ? { 'Authorization': `Bearer ${user.token}` } : {},
+          });
+        } catch (e) { /* non-critical */ }
       }
     }
 
@@ -261,6 +288,13 @@ export const StatementImport = ({ memberId, accounts = [], preSelectedAccountId,
                 Proceeding will <strong>replace</strong> that data with this upload.
               </div>
             )}
+
+            {institutionName && (
+              <div className="institution-badge-banner">
+                🏦 Importing from <strong>{institutionName}</strong> — will be tagged on each transaction
+              </div>
+            )}
+
             <div className="review-header">
               <p className="review-summary">
                 Found <strong>{result?.expenseCount || 0}</strong> expenses &nbsp;·&nbsp;
