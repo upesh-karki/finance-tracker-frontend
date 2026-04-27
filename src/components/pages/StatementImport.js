@@ -363,7 +363,18 @@ export const StatementImport = ({ memberId, accounts = [], preSelectedAccountId,
                             className="table-input desc-input" />
                         </td>
                         <td>
-                          <span className={`amount-display ${amtCls}`}>{amtText}</span>
+                          <div className="amount-edit-cell">
+                            <span className="amount-sign">{tx.displayType === 'INCOME' ? '+$' : tx.displayType === 'NEUTRAL' ? '(' : tx.displayType === 'INVESTMENT' ? '$' : '-$'}</span>
+                            <input
+                              type="number"
+                              value={tx.amount}
+                              onChange={e => updateRow(tx._id, 'amount', Math.abs(parseFloat(e.target.value) || 0))}
+                              className={`table-input amount-input amount-editable ${tx.displayType === 'INCOME' ? 'amount-positive' : tx.displayType === 'NEUTRAL' ? 'amount-neutral' : tx.displayType === 'INVESTMENT' ? 'amount-investment' : 'amount-negative'}`}
+                              step="0.01"
+                              min="0"
+                            />
+                            {tx.displayType === 'NEUTRAL' && <span className="amount-sign">)</span>}
+                          </div>
                         </td>
                         <td>
                           <select value={tx.category}

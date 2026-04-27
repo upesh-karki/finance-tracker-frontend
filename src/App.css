@@ -429,6 +429,34 @@
 .amount-neutral    { color: #a6adc8; font-style: italic; }
 .amount-investment { color: #89b4fa; }
 
+/* Editable amount cell in unified table */
+.amount-edit-cell {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  white-space: nowrap;
+}
+
+.amount-sign {
+  font-weight: 600;
+  font-size: 0.87rem;
+  flex-shrink: 0;
+}
+
+.amount-editable {
+  font-weight: 600;
+  min-width: 72px;
+  max-width: 90px;
+  text-align: right;
+  background: rgba(255,255,255,0.04);
+  border-color: rgba(255,255,255,0.08);
+}
+.amount-editable:focus {
+  background: rgba(255,255,255,0.08);
+  border-color: rgba(205,214,244,0.3);
+  outline: none;
+}
+
 /* Investments collapsible section */
 .investments-section {
   margin-top: 16px;
