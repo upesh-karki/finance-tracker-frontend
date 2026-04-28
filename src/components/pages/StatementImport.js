@@ -151,6 +151,17 @@ export const StatementImport = ({ memberId, accounts = [], preSelectedAccountId,
   const handleUpload      = () => { if (selectedFile) uploadAndExtract(selectedFile); };
   const handleRegenerate  = () => { if (selectedFile) { setStep('upload'); uploadAndExtract(selectedFile); } };
 
+  // Cycle displayType when user clicks the sign: EXPENSE → INCOME → NEUTRAL → EXPENSE
+  const cycleSign = (id) => {
+    setRows(prev => prev.map(r => {
+      if (r._id !== id) return r;
+      const next = r.displayType === 'EXPENSE' ? 'INCOME'
+                 : r.displayType === 'INCOME'  ? 'NEUTRAL'
+                 : 'EXPENSE';
+      return { ...r, displayType: next };
+    }));
+  };
+
   const updateRow = (id, field, value) =>
     setRows(prev => prev.map(r => r._id === id ? { ...r, [field]: value } : r));
   const toggleRow = (id) =>
@@ -329,6 +340,11 @@ export const StatementImport = ({ memberId, accounts = [], preSelectedAccountId,
 
             {error && <p className="error-message">{error}</p>}
 
+            {/* ── AI validation warning ── */}
+            <div className="ai-validation-banner">
+              ⚠️ <strong>Please review all extracted data carefully.</strong> AI can make mistakes — check amounts, dates, descriptions and sign (+/−/(  )) before importing.
+            </div>
+
             {/* ── Unified transactions table ── */}
             <div className="transactions-table-wrapper">
               <table className="transactions-table">
@@ -364,16 +380,29 @@ export const StatementImport = ({ memberId, accounts = [], preSelectedAccountId,
                         </td>
                         <td>
                           <div className="amount-edit-cell">
-                            <span className="amount-sign">{tx.displayType === 'INCOME' ? '+$' : tx.displayType === 'NEUTRAL' ? '(' : tx.displayType === 'INVESTMENT' ? '$' : '-$'}</span>
+                            <button
+                              className={`sign-toggle ${
+                                tx.displayType === 'INCOME'     ? 'sign-positive'
+                              : tx.displayType === 'NEUTRAL'    ? 'sign-neutral'
+                              : tx.displayType === 'INVESTMENT' ? 'sign-investment'
+                              : 'sign-negative'}`}
+                              onClick={() => cycleSign(tx._id)}
+                              title="Click to toggle: expense / income / neutral"
+                            >
+                              {tx.displayType === 'INCOME' ? '+$' : tx.displayType === 'NEUTRAL' ? '($)' : tx.displayType === 'INVESTMENT' ? '$' : '-$'}
+                            </button>
                             <input
                               type="number"
                               value={tx.amount}
                               onChange={e => updateRow(tx._id, 'amount', Math.abs(parseFloat(e.target.value) || 0))}
-                              className={`table-input amount-input amount-editable ${tx.displayType === 'INCOME' ? 'amount-positive' : tx.displayType === 'NEUTRAL' ? 'amount-neutral' : tx.displayType === 'INVESTMENT' ? 'amount-investment' : 'amount-negative'}`}
+                              className={`table-input amount-input amount-editable ${
+                                tx.displayType === 'INCOME'     ? 'amount-positive'
+                              : tx.displayType === 'NEUTRAL'    ? 'amount-neutral'
+                              : tx.displayType === 'INVESTMENT' ? 'amount-investment'
+                              : 'amount-negative'}`}
                               step="0.01"
                               min="0"
                             />
-                            {tx.displayType === 'NEUTRAL' && <span className="amount-sign">)</span>}
                           </div>
                         </td>
                         <td>
