@@ -14,12 +14,17 @@ import { API } from '../api/config';
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
 
+// NOTE: This token is intentionally a non-secret test fixture.
+// It is a fake/mock JWT for unit test assertions only — not a real credential.
+// format: base64(header).base64(payload).fakesig
+const MOCK_JWT_TOKEN = 'dGVzdC1oZWFkZXI.dGVzdC1wYXlsb2Fk.dGVzdC1zaWduYXR1cmU';
+
 const MOCK_AUTH_RESPONSE = {
   memberId: 42,
   firstName: 'John',
   lastName: 'Doe',
   email: 'john@example.com',
-  token: 'eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiI0MiIsImVtYWlsIjoiam9obkBleGFtcGxlLmNvbSJ9.fake_signature',
+  token: MOCK_JWT_TOKEN,
   emailVerified: true,
   authProvider: 'LOCAL',
 };

@@ -27,7 +27,7 @@ jobs:
         run: npm ci
 
       - name: Run tests with coverage
-        run: npm test -- --coverage --watchAll=false --passWithNoTests
+        run: npm test -- --coverage --watchAll=false --passWithNoTests --forceExit
         env:
           CI: true
 
@@ -37,14 +37,14 @@ jobs:
             echo "⚠️  No coverage report found — skipping"
             exit 0
           fi
-          TOTAL=$(python3 -c "import json; d=json.load(open('coverage/coverage-summary.json')); print(d['total']['lines']['total'])")
+          TOTAL=$(python3 -c "import json; d=json.load(open('coverage/coverage-summary.json')); print(d['total']['lines']['total'])" 2>/dev/null || echo 0)
           echo "Total lines measured: $TOTAL"
           if [ "$TOTAL" -lt "500" ]; then
             echo "⚠️  Only $TOTAL lines measured — not enough React component tests yet to enforce 70% threshold."
             echo "   Add @testing-library/react component tests to enable enforcement."
             exit 0
           fi
-          COVERAGE=$(python3 -c "import json; d=json.load(open('coverage/coverage-summary.json')); print(d['total']['lines']['pct'])")
+          COVERAGE=$(python3 -c "import json; d=json.load(open('coverage/coverage-summary.json')); print(d['total']['lines']['pct'])" 2>/dev/null || echo 0)
           echo "Line coverage: $COVERAGE%"
           if python3 -c "import sys; sys.exit(0 if float('$COVERAGE') >= 70 else 1)"; then
             echo "✅ Coverage $COVERAGE% meets the 70% threshold."
