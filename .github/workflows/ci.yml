@@ -34,10 +34,10 @@ jobs:
       - name: Check coverage threshold (70%)
         run: |
           if [ ! -f coverage/coverage-summary.json ]; then
-            echo "⚠️  No coverage report found — skipping coverage check (no tests written yet)"
+            echo "⚠️  No coverage report found — skipping coverage check"
             exit 0
           fi
-          TOTAL=$(python3 -c "import json; d=json.load(open('coverage/coverage-summary.json')); print(d['total']['lines']['covered'] + d['total']['lines']['skipped'] + d['total']['lines']['uncovered'])")
+          TOTAL=$(python3 -c "import json; d=json.load(open('coverage/coverage-summary.json')); print(d['total']['lines']['total'])")
           if [ "$TOTAL" -eq "0" ]; then
             echo "⚠️  No lines measured — skipping coverage check"
             exit 0
