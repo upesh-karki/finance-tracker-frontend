@@ -41,5 +41,12 @@
   },
   "devDependencies": {
     "http-proxy-middleware": "^3.0.3"
+  },
+  "jest": {
+    "coverageReporters": [
+      "lcov",
+      "text",
+      "json-summary"
+    ]
   }
 }

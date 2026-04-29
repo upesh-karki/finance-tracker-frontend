@@ -27,7 +27,7 @@ jobs:
         run: npm ci
 
       - name: Run tests with coverage
-        run: npm test -- --coverage --watchAll=false --coverageReporters=lcov,text,json-summary --passWithNoTests
+        run: npm test -- --coverage --watchAll=false --passWithNoTests
         env:
           CI: true
 
