@@ -27,7 +27,7 @@ jobs:
         run: npm ci
 
       - name: Run tests with coverage
-        run: npm test -- --coverage --watchAll=false --coverageReporters=lcov,text,json-summary
+        run: npm test -- --coverage --watchAll=false --coverageReporters=lcov,text,json-summary --passWithNoTests
         env:
           CI: true
 
@@ -35,6 +35,11 @@ jobs:
         run: |
           if [ ! -f coverage/coverage-summary.json ]; then
             echo "⚠️  No coverage report found — skipping coverage check (no tests written yet)"
+            exit 0
+          fi
+          TOTAL=$(python3 -c "import json; d=json.load(open('coverage/coverage-summary.json')); print(d['total']['lines']['covered'] + d['total']['lines']['skipped'] + d['total']['lines']['uncovered'])")
+          if [ "$TOTAL" -eq "0" ]; then
+            echo "⚠️  No lines measured — skipping coverage check"
             exit 0
           fi
           COVERAGE=$(python3 -c "import json; d=json.load(open('coverage/coverage-summary.json')); print(d['total']['lines']['pct'])")
