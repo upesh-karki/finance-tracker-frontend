@@ -42,16 +42,6 @@ const detectStatementMonth = (transactions) => {
   return { year: yr, month: mo };
 };
 
-/** Format amount for display based on displayType */
-const formatAmount = (amount, displayType) => {
-  const abs = Math.abs(parseFloat(amount) || 0).toFixed(2);
-  if (displayType === 'INCOME')      return { text: `+$${abs}`,    cls: 'amount-positive' };
-  if (displayType === 'EXPENSE')     return { text: `-$${abs}`,    cls: 'amount-negative' };
-  if (displayType === 'NEUTRAL')     return { text: `($${abs})`,   cls: 'amount-neutral'  };
-  if (displayType === 'INVESTMENT')  return { text: `$${abs}`,     cls: 'amount-investment' };
-  return { text: `$${abs}`, cls: '' };
-};
-
 /** Map a raw ExtractedTransaction to our unified row shape */
 const toRow = (tx, idx) => ({
   _id:          `tx-${idx}`,
@@ -71,7 +61,7 @@ export const StatementImport = ({ memberId, accounts = [], preSelectedAccountId,
   const [selectedFile, setSelectedFile]           = useState(null);
   const [selectedAccountId, setSelectedAccountId] = useState(preSelectedAccountId ? String(preSelectedAccountId) : '');
   const [uploading, setUploading]                 = useState(false);
-  const [result, setResult]                       = useState(null);
+  const [, setResult]                              = useState(null);
   const [rows, setRows]                           = useState([]);       // unified table
   const [investments, setInvestments]             = useState([]);       // investment section
   const [step, setStep]                           = useState('upload');
@@ -257,8 +247,8 @@ export const StatementImport = ({ memberId, accounts = [], preSelectedAccountId,
     onImportComplete(done);
   };
 
-  const expenseTotal  = rows.filter(r => r._selected && r.displayType === 'EXPENSE') .reduce((s, r) => s + r.amount, 0);
-  const incomeTotal   = rows.filter(r => r._selected && r.displayType === 'INCOME')  .reduce((s, r) => s + r.amount, 0);
+  const expenseTotal  = rows.filter(r => r._selected && r.displayType === 'EXPENSE').reduce((s, r) => s + r.amount, 0);
+  const incomeTotal   = rows.filter(r => r._selected && r.displayType === 'INCOME').reduce((s, r) => s + r.amount, 0);
   const neutralCount  = rows.filter(r => r.displayType === 'NEUTRAL').length;
 
   return (
@@ -364,7 +354,6 @@ export const StatementImport = ({ memberId, accounts = [], preSelectedAccountId,
                 </thead>
                 <tbody>
                   {rows.map(tx => {
-                    const { text: amtText, cls: amtCls } = formatAmount(tx.amount, tx.displayType);
                     return (
                       <tr key={tx._id} className={!tx._selected ? 'row-deselected' : ''}>
                         <td><input type="checkbox" checked={tx._selected} onChange={() => toggleRow(tx._id)} /></td>

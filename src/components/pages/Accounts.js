@@ -49,7 +49,9 @@ export const Accounts = () => {
     }
   };
 
-  useEffect(() => { if (user.memberid) { fetchAccounts(); fetchInstitutions(); } }, [user.memberid]);
+  useEffect(() => { if (user.memberid) { fetchAccounts(); fetchInstitutions(); } },
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  [user.memberid]);
 
   const handleAddAccount = async (e) => {
     e.preventDefault();

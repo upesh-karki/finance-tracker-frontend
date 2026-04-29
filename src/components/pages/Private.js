@@ -20,7 +20,7 @@ export const Private = () => {
   const { user, authFetch } = AuthData();
   const [expenses, setExpenses] = useState([]);
   const [totalExpenses, setTotalExpenses] = useState(0);
-  const [income, setIncome] = useState([]);
+  const [, setIncome] = useState([]);
   const [totalIncome, setTotalIncome] = useState(0);
   const [accounts, setAccounts] = useState([]);
   const [newExpense, setNewExpense] = useState({
@@ -75,7 +75,8 @@ export const Private = () => {
       fetchIncome();
       fetchAccounts();
     }
-  }, [user.memberid]);
+  }, // eslint-disable-next-line react-hooks/exhaustive-deps
+  [user.memberid]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();

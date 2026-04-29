@@ -108,6 +108,7 @@ const GoogleSignInButton = ({ onSuccess, onError }) => {
         { theme: "filled_black", size: "large", width: 340, text: "signin_with" }
       );
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   return (
