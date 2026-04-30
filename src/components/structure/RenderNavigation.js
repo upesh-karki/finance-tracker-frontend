@@ -36,6 +36,7 @@ export const RenderRoutes = () => {
                   { nav.map((r, i) => {
    
                        if (!r.isPrivate && r.isMenu) {
+                       if (r.isPublicOnly && user.isAuthenticated) return false;
                             return (
                                  <MenuItem key={i} r={r}/>
                             )

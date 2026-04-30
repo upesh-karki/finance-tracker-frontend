@@ -1,0 +1,12 @@
+title = "Finance Tracker Frontend Gitleaks Config"
+
+[allowlist]
+  description = "Global allowlist"
+  paths = [
+    '''src/auth/security\.test\.js''',
+    '''src/api/config\.test\.js''',
+  ]
+  # Allowlist base64-encoded test fixture tokens (not real JWTs)
+  regexes = [
+    '''dGVzdC1oZWFkZXI\.dGVzdC1wYXlsb2Fk\.dGVzdC1zaWduYXR1cmU''',
+  ]
