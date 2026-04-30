@@ -18,11 +18,10 @@ const ALL_CATEGORIES = [
   { value: 'FREELANCE',     label: '🧑‍💻 Freelance',          group: 'Income' },
   { value: 'REFUND',        label: '↩️ Refund',              group: 'Income' },
   { value: 'INCOME_OTHER',  label: '💰 Other Income',        group: 'Income' },
-  // Neutral
+  // Neutral — not counted as expense or income
   { value: 'TRANSFER',      label: '🔁 Transfer',            group: 'Neutral' },
   { value: 'CC_PAYMENT',    label: '💳 CC Payment',          group: 'Neutral' },
-  // Investment (own section — these go to investments, never expense/income)
-  { value: 'INVESTMENT',    label: '📈 Investment',          group: 'Investment' },
+  { value: 'INVESTMENT',    label: '📈 Investment',          group: 'Neutral' },
 ];
 
 const MONTH_NAMES = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
@@ -45,12 +44,14 @@ const detectStatementMonth = (transactions) => {
 /** Map a raw ExtractedTransaction to our unified row shape */
 const toRow = (tx, idx) => ({
   _id:          `tx-${idx}`,
-  _selected:    tx.displayType !== 'NEUTRAL', // neutrals unchecked by default
+  _selected:    tx.displayType !== 'NEUTRAL' && tx.displayType !== 'INVESTMENT',
   displayType:  tx.displayType || 'EXPENSE',
   date:         tx.date || new Date().toISOString().split('T')[0],
   description:  tx.description || '',
   amount:       Math.abs(parseFloat(tx.amount) || 0),
-  category:     tx.suggestedCategory || (tx.displayType === 'INCOME' ? 'SALARY' : 'OTHER'),
+  category:     tx.suggestedCategory || (tx.displayType === 'INCOME' ? 'SALARY' : tx.displayType === 'INVESTMENT' ? 'INVESTMENT' : 'OTHER'),
+  confidenceLow:  tx.confidenceLow || false,
+  confidenceNote: tx.confidenceNote || null,
   // keep originals for import routing
   transactionType: tx.transactionType,
   isTransfer:      tx.isTransfer,
@@ -162,24 +163,15 @@ export const StatementImport = ({ memberId, accounts = [], preSelectedAccountId,
   const selectedRows = rows.filter(r => r._selected);
   const totalSelected = selectedRows.length;
 
-  // When user changes category to INVESTMENT, reclassify as displayType INVESTMENT
+  // When user changes category, reclassify displayType based on group
   const handleCategoryChange = (id, value) => {
-    if (value === 'INVESTMENT') {
-      // Move row to investments section
-      const row = rows.find(r => r._id === id);
-      if (row) {
-        setInvestments(prev => [...prev, { ...row, category: 'INVESTMENT', displayType: 'INVESTMENT', _selected: true }]);
-        setRows(prev => prev.filter(r => r._id !== id));
-      }
-    } else {
-      // Reclassify displayType based on category group
-      const cat = ALL_CATEGORIES.find(c => c.value === value);
-      let displayType = 'EXPENSE';
-      if (cat?.group === 'Income')   displayType = 'INCOME';
-      if (cat?.group === 'Neutral')  displayType = 'NEUTRAL';
-      updateRow(id, 'category', value);
-      updateRow(id, 'displayType', displayType);
-    }
+    const cat = ALL_CATEGORIES.find(c => c.value === value);
+    let displayType = 'EXPENSE';
+    if (cat?.group === 'Income')  displayType = 'INCOME';
+    if (cat?.group === 'Neutral') displayType = 'NEUTRAL'; // Investment is now Neutral
+    setRows(prev => prev.map(r =>
+      r._id === id ? { ...r, category: value, displayType } : r
+    ));
   };
 
   const handleConfirmImport = async () => {
@@ -355,7 +347,8 @@ export const StatementImport = ({ memberId, accounts = [], preSelectedAccountId,
                 <tbody>
                   {rows.map(tx => {
                     return (
-                      <tr key={tx._id} className={!tx._selected ? 'row-deselected' : ''}>
+                      <React.Fragment key={tx._id}>
+                      <tr className={`${!tx._selected ? 'row-deselected' : ''} ${tx.confidenceLow ? 'row-confidence-low' : ''}`}>
                         <td><input type="checkbox" checked={tx._selected} onChange={() => toggleRow(tx._id)} /></td>
                         <td>
                           <input type="date" value={tx.date}
@@ -399,21 +392,26 @@ export const StatementImport = ({ memberId, accounts = [], preSelectedAccountId,
                             onChange={e => handleCategoryChange(tx._id, e.target.value)}
                             className="table-select">
                             {['Expense','Income','Neutral'].map(group => (
-                              <optgroup key={group} label={group}>
+                              <optgroup key={group} label={group === 'Neutral' ? 'Neutral / Investment' : group}>
                                 {ALL_CATEGORIES.filter(c => c.group === group).map(c => (
                                   <option key={c.value} value={c.value}>{c.label}</option>
                                 ))}
                               </optgroup>
                             ))}
-                            <optgroup label="Investment">
-                              <option value="INVESTMENT">📈 Investment</option>
-                            </optgroup>
                           </select>
                         </td>
                         <td><button className="btn-delete-row" onClick={() => deleteRow(tx._id)}>✕</button></td>
                       </tr>
+                      {tx.confidenceLow && (
+                        <tr key={`warn-${tx._id}`} className="confidence-warning-row">
+                          <td colSpan={6}>
+                            <span className="confidence-warning">⚠️ {tx.confidenceNote}</span>
+                          </td>
+                        </tr>
+                      )}
+                    </React.Fragment>
                     );
-                  })}
+                  })}}
                   {rows.length === 0 && (
                     <tr><td colSpan={6} style={{ textAlign: 'center', color: '#6c7086', padding: 20 }}>No transactions found</td></tr>
                   )}

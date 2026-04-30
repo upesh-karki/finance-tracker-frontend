@@ -1420,3 +1420,24 @@
   margin-bottom: 14px;
   line-height: 1.45;
 }
+
+/* ── Confidence warning rows (potential balance confusion) ── */
+.row-confidence-low td {
+  background: rgba(249,226,175,0.05);
+}
+.row-confidence-low td:first-child {
+  border-left: 3px solid #f9e2af;
+}
+
+.confidence-warning-row td {
+  padding: 2px 10px 6px 10px;
+  background: rgba(249,226,175,0.04);
+}
+
+.confidence-warning {
+  font-size: 0.76rem;
+  color: #f9e2af;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
